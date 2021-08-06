@@ -1,0 +1,529 @@
+openapi: 3.0.1
+info:
+  title: API сервиса платежей
+  version: 0.0.1
+tags:
+  - name: OnlinePaymentController
+    description: Контроллер для работы с онлайн платежами
+paths:
+  /api/v1/online/payment:
+    post:
+      tags:
+        - OnlinePaymentController
+      summary: Создание онлайн платежа
+      operationId: createPayment
+      parameters: 
+        - in: header
+          name: idempotenceKey
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: Идентификатор запроса - UUID V4
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOnlinePaymentRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateOnlinePaymentResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionResponse'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionResponse'
+  /api/v1/online/payment/operations/cancel:
+    post:
+      tags:
+        - OnlinePaymentController
+      summary: Деактивация (отмена) платежа
+      operationId: cancelPayment
+      parameters: 
+        - in: header
+          name: idempotenceKey
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: Идентификатор запроса - UUID V4
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelOnlinePaymentOperation'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnlinePayment'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionResponse'
+  /api/v1/online/payment/operations/deposit:
+    post:
+      tags:
+        - OnlinePaymentController
+      summary: Подтверждение платежа (2-фазная оплата)
+      operationId: depositPayment
+      parameters: 
+        - in: header
+          name: idempotenceKey
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: Идентификатор запроса - UUID V4
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositOnlinePaymentOperation'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnlinePayment'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionResponse'
+  /api/v1/online/payment/operations/refund:
+    post:
+      tags:
+        - OnlinePaymentController
+      summary: Возврат ДС по платежу
+      operationId: refundPayment
+      parameters: 
+        - in: header
+          name: idempotenceKey
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: Идентификатор запроса - UUID V4
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundOnlinePaymentOperation'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnlinePayment'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionResponse'
+  /api/v1/online/payment/{transactionId}:
+    get:
+      tags:
+        - OnlinePaymentController
+      summary: Получение платежа по идентификатору транзакции
+      operationId: findPaymentById
+      parameters: 
+        - in: path
+          name: transactionId
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: Идентификатор транзакции в платежном шлюзе
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OnlinePayment'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionResponse'
+  /api/v1/online/payments:
+    get:
+      tags: 
+        - OnlinePaymentController
+      summary: Поиск онлайн платежей
+      operationId: findPayments
+      parameters: 
+        - in: query
+          name: query
+          required: false
+          example: orderId==80000000
+          schema:
+            type: string
+          description: Поисковый запрос в синтаксисе RSQL
+        - in: query
+          name: page
+          required: false
+          example: 0
+          schema:
+            type: integer
+          description: Номер страницы для постраничного чтения
+        - in: query
+          name: size
+          required: false
+          example: 20
+          schema:
+            type: integer
+          description: Максимальный размер возвращаемой страницы
+        - in: query
+          name: sort
+          required: false
+          example: id:desc,orderNumber:asc
+          schema:
+            type: string
+          description: Описание сортировки
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/OnlinePayment'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionResponse'  
+components:
+  schemas:
+    ExceptionResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Код ошибки
+          example: '6666'
+        message:
+          type: string
+          description: Понятное описание ошибки - предназначено для отображения пользователю
+          example: Произошла ошибка
+        timestamp:
+          type: string
+          description: Дата-время ошибки
+          format: date-time
+        description:
+          type: string
+          description: Техническое описание ошибки - содержимое этого параметра не предназначено для отображения пользователю
+          example: RuntimeException
+      description: Сообщение об ошибке
+    CreateOnlinePaymentRequest:
+      title: CreateOnlinePaymentRequest
+      required:
+        - failUrl
+        - orderNumber
+        - returnUrl
+        - amount
+      type: object
+      properties:
+        merchant:
+          type: string
+          description: Имя продавца в системе платёжного шлюза
+          example: perfectMerchant
+        orderNumber:
+          type: string
+          description: Номер заказа
+          example: '8000000000'
+        description:
+          type: string
+          description: Описание заказа
+          example: Москва - N001. Тестовый заказ
+        clientId:
+          type: string
+          description: Идентификатор клиента в системе магазина
+          example: '0007666666'
+        returnUrl:
+          type: string
+          description: 'Адрес, на который требуется перенаправить пользователя в случае успешной оплаты. Должен быть указан полностью, включая используемый протокол'
+          example: 'https://test.success.ru'
+        failUrl:
+          type: string
+          description: 'Адрес, на который требуется перенаправить пользователя в случае неуспешной оплаты. Должен быть указан полностью, включая используемый протокол'
+          example: 'https://test.fail.ru'
+        objectId:
+          type: string
+          description: РИМ
+          example: S001
+        amount:
+          type: integer
+          example: 100
+          description: Сумма платежа (в копейках)
+        preAuth:
+          type: boolean
+          example: false
+          description: Использовать 2-фазный платеж
+          default: false
+        currency:
+          type: string
+          description: Код валюты платежа ISO 4217
+          default: 643
+        language:
+          type: string
+          description: Язык в кодировке ISO 639-1
+          default: ru
+        paymentTTL:
+          type: integer
+          default: 60000
+          description: Время жизни платежной ссылки в секундах
+        notification:
+          $ref: '#/components/schemas/OnlinePaymentNotification'
+      description: Запрос на создание онлайн платежа
+    CreateOnlinePaymentResponse:
+      title: CreateOnlinePaymentResponse
+      type: object
+      required: 
+        - formUrl
+        - paymentId
+        - paymentExternalId
+      properties:
+        formUrl:
+          type: string
+          description: 'URL платежной формы, на который надо перенаправить браузер клиента'
+          example: 'https://server/merchants/rbs/payment_ru.html?mdOrder=5e5dc6bd-dee3-4c96-849a-09f3f575f4b6&transient=false'
+        id:
+          type: string
+          description: Идентификатор оплаты в CRM
+          format: uuid
+        transactionId:
+          type: string
+          description: Номер оплаты в платежном шлюзе
+          example: fd578d66-994a-4446-9cb4-6f63eff0a642
+      description: Ответ на запрос создание платежа
+    OnlinePaymentNotification:
+      title: OnlinePaymentNotification
+      type: object
+      required: 
+        - type
+        - receiver
+      properties:
+        type:
+          type: string
+          enum:
+            - SMS
+            - EMAIL
+        receiver:
+          type: string
+          description: Для sms - номер телефона, для email - адрес почты
+          example: '+79101234567'
+    CancelOnlinePaymentOperation:
+      title: OnlinePaymentOperation
+      type: object
+      properties:
+        orderNumber:
+          type: string
+          description: Номер заказа
+          example: '8000000000'
+        transactionId:
+          type: string
+          description: Идентификатор платежа в платежной системе
+          example: bc6862da-3aea-449c-9337-cee5cd89faae
+    DepositOnlinePaymentOperation:
+      title: OnlinePaymentOperation
+      type: object
+      properties:
+        orderNumber:
+          type: string
+          description: Номер заказа
+          example: '8000000000'
+        transactionId:
+          type: string
+          description: Идентификатор платежа в платежной системе
+          example: bc6862da-3aea-449c-9337-cee5cd89faae
+        amount:
+          type: integer
+          example: 100
+          description: Сумма платежа (в копейках)
+    RefundOnlinePaymentOperation:
+      title: OnlinePaymentOperation
+      type: object
+      properties:
+        orderNumber:
+          type: string
+          description: Номер заказа
+          example: '8000000000'
+        transactionId:
+          type: string
+          description: Идентификатор платежа в платежной системе
+          example: bc6862da-3aea-449c-9337-cee5cd89faae
+        amount:
+          type: integer
+          example: 100
+          description: Сумма возврата (в копейках)
+    OnlinePayment:
+      title: OnlinePayment
+      type: object
+      properties:
+        id:
+          type: string
+          description: Идентификатор платежа
+          format: uuid
+        orderNumber:
+          type: string
+          description: Номер заказа
+          example: '8000000000'
+        transactionId:
+          type: string
+          description: Идентификатор платежа в платежной системе
+          example: bc6862da-3aea-449c-9337-cee5cd89faae
+        status:
+          type: string
+          description: Статус оплаты
+          example: REGISTERED
+          enum:
+            - REGISTERED
+            - HELD
+            - AUTHORIZED
+            - AUTHORIZATION_CANCELLED
+            - REFUNDED
+            - ACS_AUTHORIZATION
+            - AUTHORIZATION_REFUSED
+        maskedCardNumber:
+          type: string
+          description: 'Маскированный номер карты, которая использовалась для оплаты'
+          example: 4111****1111
+        cardHolder:
+          type: string
+          description: Имя держателя карты
+          example: IVAN IVANOV
+        paymentTimestamp:
+          type: string
+          description: Дата и время платежа
+          format: date-time
+        createdAt:
+          type: string
+          description: Дата и время создания сущности
+          format: date-time
+        lastUpdatedAt:
+          type: string
+          description: Дата и время последнего изменения сущности 
+          format: date-time
+        amount:
+          type: number
+          description: Сумма платежа
+          example: 100
+        approvalCode:
+          type: string
+          description: Код подтверждения платежа
+          example: 123
+        expiration:
+          type: string
+          description: Срок истечения действия карты (YYYYMM)
+          format: string
+          example: 202110
+        terminalId:
+          type: string
+          description: ID терминала оплаты
+          example: 123123
+        userIp:
+          type: string
+          description: IP-адрес плательщика
+          example: 8.8.8.8
+        paymentTTL:
+          type: integer
+          default: 60000
+          description: Время жизни платежной ссылки в секундах
+        merchant:
+          type: string
+          description: Имя продавца в системе платёжного шлюза
+          example: perfectMerchant
+        description:
+          type: string
+          description: Описание заказа
+          example: Москва - N001. Тестовый заказ
+        clientId:
+          type: string
+          description: Идентификатор клиента в системе магазина
+          example: '0007666666'
+        returnUrl:
+          type: string
+          description: 'Адрес, на который требуется перенаправить пользователя в случае успешной оплаты. Должен быть указан полностью, включая используемый протокол'
+          example: 'https://test.success.ru'
+        failUrl:
+          type: string
+          description: 'Адрес, на который требуется перенаправить пользователя в случае неуспешной оплаты. Должен быть указан полностью, включая используемый протокол'
+          example: 'https://test.fail.ru'
+        objectId:
+          type: string
+          description: РИМ
+          example: S001
+        preAuth:
+          type: boolean
+          example: false
+          description: Использовать 2-фазный платеж
+          default: false
+        currency:
+          type: string
+          description: Код валюты платежа ISO 4217
+          default: 643
+        language:
+          type: string
+          description: Язык в кодировке ISO 639-1
+          default: ru
+        notification:
+          $ref: '#/components/schemas/OnlinePaymentNotification'
